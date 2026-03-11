@@ -1,0 +1,11 @@
+venv/
+venv_new/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+downloads/
+debug_faces/
+*.pt
+*.tflite
+.env
