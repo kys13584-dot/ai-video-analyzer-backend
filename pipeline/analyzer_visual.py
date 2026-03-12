@@ -67,16 +67,29 @@ def extract_visual_features(video_path: str) -> Dict[str, Any]:
     frames_in_first_3s = int(3 * fps) if fps > 0 else 0
 
     # ── MediaPipe 얼굴 감지기 설정 ──────────────────────────────────
-    import mediapipe as mp
-    from mediapipe.tasks import python
-    from mediapipe.tasks.python import vision
-    
-    _ensure_face_model_exists()
-    
-    base_options = python.BaseOptions(model_asset_path=_FACE_MODEL_PATH)
-    options = vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.7)
-    
-    with vision.FaceDetector.create_from_options(options) as face_detector:
+    skip_mediapipe = os.getenv("SKIP_MEDIAPIPE", "false").lower() == "true"
+    face_detector_ctx = None
+
+    if not skip_mediapipe:
+        import mediapipe as mp
+        from mediapipe.tasks import python
+        from mediapipe.tasks.python import vision
+        _ensure_face_model_exists()
+        base_options = python.BaseOptions(model_asset_path=_FACE_MODEL_PATH)
+        options = vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.7)
+        face_detector_ctx = vision.FaceDetector.create_from_options(options)
+
+    import contextlib
+
+    @contextlib.contextmanager
+    def _maybe_detector():
+        if face_detector_ctx is not None:
+            with face_detector_ctx as fd:
+                yield fd
+        else:
+            yield None
+
+    with _maybe_detector() as face_detector:
         
         # 단일 프레임 오탐을 방지하기 위해 최소 2개 프레임 이상 감지 요건
         FACE_CONFIRM_THRESHOLD = 2
@@ -102,7 +115,7 @@ def extract_visual_features(video_path: str) -> Dict[str, Any]:
                     scene_changes += 1
 
             # ── 얼굴 감지 (MediaPipe 딥러닝) ─────────────────────────────
-            if not faces_detected:
+            if not faces_detected and face_detector is not None:
                 count = _detect_faces_mediapipe(frame, face_detector)
                 if count > 0:
                     face_detection_count += 1
