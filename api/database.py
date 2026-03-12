@@ -41,5 +41,8 @@ def run_migrations():
     if "opinion" not in existing_cols:
         cursor.execute("ALTER TABLE videos ADD COLUMN opinion TEXT")
         print("[DB Migration] Added column: videos.opinion")
+    if "progress_stage" not in existing_cols:
+        cursor.execute("ALTER TABLE videos ADD COLUMN progress_stage TEXT")
+        print("[DB Migration] Added column: videos.progress_stage")
     conn.commit()
     conn.close()

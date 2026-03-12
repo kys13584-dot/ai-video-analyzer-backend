@@ -11,6 +11,7 @@ class VideoResponse(BaseModel):
     title: Optional[str] = None
     duration: Optional[float] = None
     status: str
+    progress_stage: Optional[str] = None
     error_message: Optional[str] = None
     created_at: datetime
 

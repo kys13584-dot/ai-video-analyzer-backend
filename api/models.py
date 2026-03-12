@@ -14,6 +14,7 @@ class Video(Base):
     resolution = Column(String, nullable=True)
     file_path = Column(String, nullable=True)
     status = Column(String, default="pending") # pending, processing, completed, failed
+    progress_stage = Column(String, nullable=True) # downloading, visual, detection, audio, scoring, insights
     error_message = Column(String, nullable=True)
     opinion = Column(String, nullable=True)  # JSON-encoded list[str] — AI 분석 의견
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -66,16 +66,28 @@ def _analyze_and_persist(
     """
     insight_gen = InsightGenerator()
 
-    # ── Stages 3-5: Parallel analysis ─────────────────────────────────
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        future_visual = executor.submit(extract_visual_features, file_path)
-        future_objects = executor.submit(_run_object_detection, file_path, detector_name)
-        audio_analyzer = AudioAnalyzer()
-        future_audio = executor.submit(audio_analyzer.analyze_audio, file_path)
+    # ── Stages 3-5: Sequential analysis (low-memory mode) ─────────────
+    import gc
+    video_obj = db.query(models.Video).filter(models.Video.id == video_id).first()
 
-        visual_features: dict = future_visual.result()
-        objects_detected: str = future_objects.result()
-        audio_features: dict = future_audio.result()
+    video_obj.progress_stage = "visual"
+    db.commit()
+    visual_features: dict = extract_visual_features(file_path)
+    gc.collect()
+
+    video_obj.progress_stage = "detection"
+    db.commit()
+    objects_detected: str = _run_object_detection(file_path, detector_name)
+    gc.collect()
+
+    video_obj.progress_stage = "audio"
+    db.commit()
+    audio_analyzer = AudioAnalyzer()
+    audio_features: dict = audio_analyzer.analyze_audio(file_path)
+    gc.collect()
+
+    video_obj.progress_stage = "scoring"
+    db.commit()
 
     if objects_detected:
         visual_features["objects_detected"] = objects_detected
@@ -87,6 +99,8 @@ def _analyze_and_persist(
     scores = calculate_scores(visual_features, audio_features)
 
     # ── Stage 7: Insights + AI Title + Opinion ───────────────────────
+    video_obj.progress_stage = "insights"
+    db.commit()
     all_features = {**visual_features, **audio_features}
     video.title = insight_gen.generate_title(scores, all_features, original_title)
     opinion_lines = insight_gen.generate_opinion(scores, all_features)
