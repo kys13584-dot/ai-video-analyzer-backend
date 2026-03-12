@@ -37,6 +37,8 @@ def _run_object_detection(video_path: str, detector_name: str = "yolo") -> str:
     Runs the chosen detector over sampled frames and returns top-5 objects.
     Isolated as a standalone function so it can be submitted to ThreadPoolExecutor.
     """
+    if os.getenv("SKIP_YOLO", "false").lower() == "true":
+        return ""
     detector = get_detector(detector_name)
     preprocessor = VideoPreprocessor()
     all_objects: list[str] = []
