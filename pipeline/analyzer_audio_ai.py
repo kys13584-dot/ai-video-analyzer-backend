@@ -18,7 +18,7 @@ def _transcribe_in_subprocess(audio_path: str) -> dict:
     """
     import whisper as _w  # type: ignore
 
-    model = _w.load_model("base")
+    model = _w.load_model("tiny")
 
     # 1단계: 언어 감지
     audio = _w.load_audio(audio_path)
